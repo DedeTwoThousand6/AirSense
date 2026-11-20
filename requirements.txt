@@ -7,3 +7,4 @@ tensorflow>=2.16
 flask>=3.0
 ipykernel>=6.29
 notebook>=7.0
+gunicorn>=21.2
