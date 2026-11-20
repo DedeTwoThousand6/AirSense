@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSense — Prediksi Kualitas Udara PM2.5</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <h3>Memproses Prediksi...</h3>
+    <p>Model LSTM sedang menghitung nilai PM2.5</p>
+</div>
+
+<div class="split-card">
+
+    <!-- ══ PANEL KIRI ══ -->
+    <div class="split-left">
+
+        <div class="algo-chip">
+            <i class="fa-solid fa-microchip"></i> LSTM Deep Learning
+        </div>
+
+        <!-- Lottie paper airplane — stable wrapper -->
+        <div class="lottie-wrapper">
+            <dotlottie-wc
+                src="https://lottie.host/a18c3eab-88ff-4e1e-815b-8f61a7277757/uz3GWC59I6.lottie"
+                autoplay loop>
+            </dotlottie-wc>
+        </div>
+
+        <h1>AirSense</h1>
+        <p class="subtitle">Prediksi PM2.5 nasional Indonesia<br>berbasis Deep Learning LSTM</p>
+
+        <!-- Dashed divider -->
+        <hr class="dash-divider">
+
+        <!-- Metric boxes -->
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-number">{{ stats.r2 }}%</div>
+                <div class="stat-label">R² Score</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats.mape }}%</div>
+                <div class="stat-label">MAPE</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats.rmse }}</div>
+                <div class="stat-label">RMSE</div>
+            </div>
+        </div>
+
+        <!-- Today status -->
+        <div class="today-card">
+            <div class="today-row">
+                <i class="fa-regular fa-calendar" style="color:var(--blue-500);"></i>
+                <span>Hari ini &nbsp;
+                    <strong style="color:var(--gray-900);">{{ stats.today_str }}</strong>
+                </span>
+            </div>
+            <div class="today-pm">
+                <span class="today-val" style="color:{{ stats.kat_today.color }};">
+                    {{ stats.pm25_today }} µg/m³
+                </span>
+                <span class="today-badge"
+                      style="background:{{ stats.kat_today.bg }};
+                             border:1.5px solid {{ stats.kat_today.border }};
+                             color:{{ stats.kat_today.color }};">
+                    <i class="fa-solid {{ stats.kat_today.icon }}" style="font-size:.65rem;"></i>
+                    {{ stats.kat_today.label }}
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══ PANEL KANAN ══ -->
+    <div class="split-right">
+
+        <h2>PREDIKSI KUALITAS UDARA</h2>
+        <p class="form-desc">
+            Prediksi otomatis dimulai dari besok &nbsp;
+            <strong id="tomorrow-label" style="color:var(--blue-600);"></strong>
+        </p>
+
+        <form action="/predict" method="POST" id="predictForm">
+
+            <!-- Slider -->
+            <div class="slider-group">
+                <label for="n_days">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    Jumlah Hari Prediksi
+                </label>
+                <div class="slider-wrapper">
+                    <input type="range" name="n_days" id="n_days"
+                           min="1" max="14" value="7"
+                           oninput="updateSlider(this.value)">
+                    <div class="slider-val-box">
+                        <span id="sliderDisplay">7</span>
+                        <span class="slider-unit">hari</span>
+                    </div>
+                </div>
+                <div class="slider-ticks">
+                    <span>1 hari</span><span>7 hari</span><span>14 hari</span>
+                </div>
+            </div>
+
+            <!-- Info grid 2×2 -->
+            <div class="info-grid">
+                <div class="info-cell">
+                    <i class="fa-solid fa-database" style="color:var(--blue-500);"></i>
+                    <div>
+                        <div class="ic-label">Data Terakhir</div>
+                        <div class="ic-val">{{ stats.data_date_str }}</div>
+                    </div>
+                </div>
+                <div class="info-cell">
+                    <i class="fa-solid fa-wind" style="color:var(--blue-400);"></i>
+                    <div>
+                        <div class="ic-label">Estimasi PM2.5 Hari Ini</div>
+                        <div class="ic-val" style="color:{{ stats.kat_today.color }};">
+                            {{ stats.pm25_today }} µg/m³
+                        </div>
+                    </div>
+                </div>
+                <div class="info-cell">
+                    <i class="fa-solid fa-brain" style="color:var(--blue-600);"></i>
+                    <div>
+                        <div class="ic-label">Model</div>
+                        <div class="ic-val">LSTM · 30 lag hari</div>
+                    </div>
+                </div>
+                <div class="info-cell">
+                    <i class="fa-solid fa-location-dot" style="color:#16a34a;"></i>
+                    <div>
+                        <div class="ic-label">Cakupan</div>
+                        <div class="ic-val">Nasional Indonesia</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Mulai Prediksi PM2.5</span>
+            </button>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    // Label tanggal besok
+    (function () {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        const opts = { weekday:'short', day:'2-digit', month:'short', year:'numeric' };
+        document.getElementById('tomorrow-label').textContent =
+            d.toLocaleDateString('id-ID', opts);
+    })();
+
+    function updateSlider(val) {
+        document.getElementById('sliderDisplay').textContent = val;
+    }
+
+    document.getElementById('predictForm').addEventListener('submit', function () {
+        document.getElementById('loadingOverlay').classList.add('active');
+    });
+</script>
+</body>
+</html>

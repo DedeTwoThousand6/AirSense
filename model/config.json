@@ -1,0 +1,47 @@
+{
+  "timesteps": 30,
+  "features": [
+    "pm25_nasional",
+    "pm25_max",
+    "pm10",
+    "aqi",
+    "pct_melebihi_who",
+    "doy_sin",
+    "doy_cos"
+  ],
+  "target": "pm25_nasional",
+  "target_type": "delta_log1p",
+  "raw_cols": [
+    "pm25_nasional",
+    "pm25_max",
+    "pm10",
+    "aqi",
+    "pct_melebihi_who"
+  ],
+  "train_end_date": "2025-07-22",
+  "last_data_date": "2026-10-30",
+  "metrics_val": {
+    "RMSE": 1.7458256386605169,
+    "MAE": 1.4190818598852488,
+    "MAPE (%)": 6.553297993526977,
+    "R2": 0.6873273466919069
+  },
+  "metrics_test": {
+    "RMSE": 5.253180418488733,
+    "MAE": 3.12839338593526,
+    "MAPE (%)": 7.745326662830488,
+    "R2": 0.9221071101088927
+  },
+  "metrics_baseline_val": {
+    "RMSE": 1.8916436519152926,
+    "MAE": 1.5253412356321836,
+    "MAPE (%)": 7.065477431625319,
+    "R2": 0.6329148470865935
+  },
+  "metrics_baseline_test": {
+    "RMSE": 4.725565402483444,
+    "MAE": 2.8728085052378973,
+    "MAPE (%)": 7.68160503669155,
+    "R2": 0.9369680504557488
+  }
+}

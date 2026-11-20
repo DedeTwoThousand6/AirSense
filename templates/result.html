@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Prediksi PM2.5 — AirSense</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js" type="module"></script>
+</head>
+<body>
+
+<div class="result-wrapper">
+
+    <!-- ══ HEADER CARD ══ -->
+    <div class="split-card">
+
+        <!-- KIRI -->
+        <div class="split-left">
+
+            <!-- Lottie pesawat kertas -->
+            <div class="lottie-wrapper" style="width:150px;height:150px;">
+                <dotlottie-wc
+                    src="https://lottie.host/a18c3eab-88ff-4e1e-815b-8f61a7277757/uz3GWC59I6.lottie"
+                    style="width:150px!important;height:150px!important;"
+                    autoplay loop>
+                </dotlottie-wc>
+            </div>
+
+            <h1>Prediksi Selesai!</h1>
+            <p class="subtitle">
+                {{ n_days }} hari ke depan mulai<br>
+                <strong style="color:var(--blue-600);">
+                    {{ tabel[0].tanggal if tabel else '—' }}
+                </strong>
+            </p>
+
+            <hr class="dash-divider">
+
+            <!-- Metrik model -->
+            <div class="model-info-row">
+                <span>
+                    <i class="fa-solid fa-chart-line" style="color:var(--blue-400);margin-right:3px;"></i>
+                    R² &nbsp;<strong>{{ metrics.R2 }}%</strong>
+                </span>
+                <span>
+                    <i class="fa-solid fa-bullseye" style="color:var(--blue-500);margin-right:3px;"></i>
+                    MAPE &nbsp;<strong>{{ metrics.MAPE }}%</strong>
+                </span>
+                <span>
+                    <i class="fa-solid fa-ruler" style="color:var(--blue-600);margin-right:3px;"></i>
+                    RMSE &nbsp;<strong>{{ metrics.RMSE }}</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- KANAN -->
+        <div class="split-right">
+
+            <h2>Ringkasan Prediksi</h2>
+            <p class="form-desc">
+                Per hari ini &nbsp;
+                <strong style="color:var(--blue-600);">{{ today_str }}</strong>
+                &nbsp;·&nbsp; {{ n_days }} hari ke depan
+            </p>
+
+            <!-- Badge kategori rata-rata -->
+            <p class="section-label">Kategori Rata-rata Prediksi</p>
+            <div class="prediction-badge"
+                 style="background:{{ kat_avg.bg }};
+                        border:1.5px solid {{ kat_avg.border }};
+                        color:{{ kat_avg.color }};">
+                <i class="fa-solid {{ kat_avg.icon }}"></i>
+                {{ kat_avg.label }}
+            </div>
+
+            <!-- 3 stat boxes -->
+            <div class="stats-row" style="margin-top:.85rem;">
+                <div class="stat-box">
+                    <div class="stat-number">{{ avg_pred }}</div>
+                    <div class="stat-label">Rata-rata µg/m³</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color:#dc2626;">{{ max_pred }}</div>
+                    <div class="stat-label">Maksimum</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" style="color:#16a34a;">{{ min_pred }}</div>
+                    <div class="stat-label">Minimum</div>
+                </div>
+            </div>
+
+            <!-- Compare hari ini vs besok -->
+            <div class="compare-row">
+                <div class="compare-item">
+                    <div class="compare-label">PM2.5 Hari Ini</div>
+                    <div class="compare-val" style="color:var(--blue-600);">
+                        {{ pm25_now }} µg/m³
+                    </div>
+                </div>
+                <i class="fa-solid fa-arrow-right compare-arrow"></i>
+                <div class="compare-item">
+                    <div class="compare-label">Prediksi Besok</div>
+                    {% if tabel %}
+                    <div class="compare-val" style="color:{{ tabel[0].color }};">
+                        {{ tabel[0].pm25 }} µg/m³
+                    </div>
+                    {% endif %}
+                </div>
+                {% if tabel %}
+                {% set delta = tabel[0].pm25 - pm25_now %}
+                <div class="compare-delta"
+                     style="color:{% if delta > 0 %}#dc2626{% else %}#16a34a{% endif %};">
+                    {% if delta > 0 %}▲ +{% else %}▼ {% endif %}{{ '%.1f'|format(delta|abs) }}
+                </div>
+                {% endif %}
+            </div>
+
+            <button onclick="window.location.href='/'" class="btn-primary">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Prediksi Ulang</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ LINE CHART ══ -->
+    <div class="chart-card">
+        <div class="chart-title">
+            <i class="fa-solid fa-chart-line" style="color:var(--blue-500);"></i>
+            Tren Historis &amp; Prediksi PM2.5
+        </div>
+        <p class="chart-sub">
+            60 hari historis (biru) &nbsp;+&nbsp; {{ n_days }} hari prediksi (oranye)
+            &nbsp;·&nbsp; Garis merah putus = ambang WHO 15 µg/m³
+        </p>
+        <img src="data:image/png;base64,{{ chart_line }}"
+             alt="Tren PM2.5" class="chart-img">
+    </div>
+
+    <!-- ══ BAR CHART ══ -->
+    <div class="chart-card">
+        <div class="chart-title">
+            <i class="fa-solid fa-chart-bar" style="color:var(--blue-600);"></i>
+            Nilai PM2.5 Per Hari Prediksi
+        </div>
+        <p class="chart-sub">Warna batang menunjukkan kategori kualitas udara WHO</p>
+        <img src="data:image/png;base64,{{ chart_bar }}"
+             alt="Bar PM2.5" class="chart-img">
+    </div>
+
+    <!-- ══ TABEL DETAIL ══ -->
+    <div class="chart-card">
+        <div class="chart-title">
+            <i class="fa-solid fa-table-list" style="color:var(--blue-500);"></i>
+            Detail Prediksi Harian
+        </div>
+        <p class="chart-sub" style="margin-bottom:.7rem;">
+            {{ tabel[0].tanggal if tabel else '—' }} — {{ n_days }} hari ke depan
+        </p>
+
+        <div class="pred-table">
+            <div class="pred-thead">
+                <span>Tanggal</span>
+                <span>PM2.5</span>
+                <span>Kategori</span>
+                <span>vs Ambang WHO 15</span>
+            </div>
+
+            {% for row in tabel %}
+            <div class="pred-row" style="border-left:3px solid {{ row.color }};">
+                <span class="pred-date">{{ row.tanggal }}</span>
+                <span class="pred-val" style="color:{{ row.color }};">
+                    {{ row.pm25 }}
+                    <small style="font-size:.62rem;font-weight:500;
+                                  color:var(--gray-400);">µg/m³</small>
+                </span>
+                <span class="pred-kat"
+                      style="background:{{ row.bg }};
+                             border:1.5px solid {{ row.border }};
+                             color:{{ row.color }};">
+                    <i class="fa-solid {{ row.icon }}" style="font-size:.64rem;"></i>
+                    {{ row.kategori }}
+                </span>
+                <span class="pred-who">
+                    <div class="who-bar-bg">
+                        <div class="who-bar-fill"
+                             style="width:{{ [row.pm25/2.5, 100]|min }}%;
+                                    background:{{ row.color }};"></div>
+                    </div>
+                    <span style="font-size:.67rem;color:{{ row.color }};font-weight:700;">
+                        {% if row.pm25 > 15 %}↑ Di atas WHO{% else %}✓ Di bawah WHO{% endif %}
+                    </span>
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer-note">
+        <i class="fa-solid fa-circle-info"
+           style="color:var(--blue-400);margin-right:5px;"></i>
+        Prediksi bersifat estimasi &nbsp;·&nbsp;
+        Ambang WHO PM2.5 (24 jam) = <strong>15 µg/m³</strong> &nbsp;·&nbsp;
+        Data diperbarui otomatis per hari ini <strong>{{ today_str }}</strong>
+    </p>
+
+</div>
+</body>
+</html>
